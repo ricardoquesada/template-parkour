@@ -34,6 +34,7 @@ class GameNode : public cocos2d::Node
         RUNNING,
         JUMPING_UP,
         JUMPING_DOWN,
+        CROUCH,
         GAMEOVER
     };
 
@@ -46,13 +47,17 @@ protected:
     virtual ~GameNode();
 
     virtual void update(float dt);
-    void updateTilemap(float dt);
+    void updateScroll(float dt);
     void updateActor(float dt);
-    void onTouchesEnded(const std::vector<cocos2d::Touch*>& touches, cocos2d::Event* event);
+    void onTouchesBegan(const std::vector<cocos2d::Touch*>& touches, cocos2d::Event* event);
     void jump();
 
-    cocos2d::TMXTiledMap* _tilemap1;
-    cocos2d::TMXTiledMap* _tilemap2;
+    // 2 images for the ground
+    cocos2d::Sprite* _ground0;
+    cocos2d::Sprite* _ground1;
+    // 2 images for the background
+    cocos2d::Sprite* _background0;
+    cocos2d::Sprite* _background1;
 
     cocos2d::Action* _runAction;
     cocos2d::Action* _jumpUpAction;
@@ -64,4 +69,5 @@ protected:
     ActorMode _actorMode;
     cocos2d::Vec2 _actorVel;
     float _accelTime;
+    float _elapsedTime;                     // calculates elapsed time for crouch mode
 };

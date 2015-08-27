@@ -26,9 +26,11 @@
 
 using namespace cocos2d;
 
-static const float START_SPEED = 250;       // pixels per second
-static const float ACTOR_POS_Y = 64;
-static const float GRAVITY = 10;
+static const float FOREGROUND_SPEED = 250;      // pixels per second
+static const float BACKGROUND_SPEED = 0.1;      // 10% of foreground speed
+static const float ACTOR_POS_Y = 30;
+static const float JUMP_VEL_Y = 4;
+static const float GRAVITY_Y = 1;
 
 Scene* createSceneWithGame()
 {
@@ -64,23 +66,31 @@ bool GameNode::init()
     // assign size to node
     setContentSize(Director::getInstance()->getVisibleSize());
 
-    // set fixed background image
-    auto image = Sprite::create("res/gameBackground.png");
-    image->setNormalizedPosition(Vec2(0.5,0.5));
-    addChild(image);
+    // set background images
+    // 2 sprites that will generate a fake "endless scroll"
+    _background0 = Sprite::create("res/background00.png");
+    _background1 = Sprite::create("res/background01.png");
+    _background0->setAnchorPoint(Vec2::ZERO);
+    _background1->setAnchorPoint(Vec2::ZERO);
+    addChild(_background0);
+    addChild(_background1);
+    // _background1 right after _background0
+    _background1->setPosition(Vec2(_background0->getContentSize().width,0));
 
-    // set tilemaps:
-    // 2 tilemaps that will generate a fake "endless scroll"
-    _tilemap1 = TMXTiledMap::create("res/map00.tmx");
-    _tilemap2 = TMXTiledMap::create("res/map00.tmx");
-    addChild(_tilemap1);
-    addChild(_tilemap2);
-    // tilemap2 right after tilemap1
-    _tilemap2->setPosition(Vec2(_tilemap1->getContentSize().width,0));
+    // set ground images
+    // 2 sprites that will generate a fake "endless scroll"
+    _ground0 = Sprite::create("res/ground00.png");
+    _ground1 = Sprite::create("res/ground01.png");
+    addChild(_ground0);
+    addChild(_ground1);
+    // _ground1 right after _ground0
+    _ground1->setPosition(Vec2(_ground0->getContentSize().width,0));
+
+
 
     // add player animations for frame cache
     auto frameCache = SpriteFrameCache::getInstance();
-    frameCache->addSpriteFramesWithFile("res/running.plist");
+    frameCache->addSpriteFramesWithFile("res/parkour.plist");
 
     // create main sprite
     _actor = Sprite::createWithSpriteFrameName("runner0.png");
@@ -129,7 +139,7 @@ bool GameNode::init()
         auto frame = frameCache->getSpriteFrameByName(animJumpUp[i]);
         jumpUpFrames.pushBack(frame);
     }
-    auto jumpUpAnimation = Animation::createWithSpriteFrames(jumpUpFrames, 0.1);
+    auto jumpUpAnimation = Animation::createWithSpriteFrames(jumpUpFrames, 0.02);
 
     Vector<SpriteFrame*> jumpDownFrames(JUMPDOWN_FRAMES);
     for (int i=0; i<JUMPDOWN_FRAMES; i++)
@@ -137,7 +147,7 @@ bool GameNode::init()
         auto frame = frameCache->getSpriteFrameByName(animJumpUp[i]);
         jumpDownFrames.pushBack(frame);
     }
-    auto jumpDownAnimation = Animation::createWithSpriteFrames(jumpDownFrames, 0.1);
+    auto jumpDownAnimation = Animation::createWithSpriteFrames(jumpDownFrames, 0.2);
 
 
     // in order to animate the animation, we need to create an "Animate" action
@@ -154,7 +164,7 @@ bool GameNode::init()
     _actorMode = ActorMode::RUNNING;
 
     // initial game speed. How many pixels per second
-    _gameSpeed = START_SPEED;
+    _gameSpeed = FOREGROUND_SPEED;
 
     // trigger main loop
     scheduleUpdate();
@@ -162,7 +172,7 @@ bool GameNode::init()
     // call me when there are touches
     auto eventDispatcher = Director::getInstance()->getEventDispatcher();
     auto listener = EventListenerTouchAllAtOnce::create();
-    listener->onTouchesEnded = CC_CALLBACK_2(GameNode::onTouchesEnded, this);
+    listener->onTouchesBegan = CC_CALLBACK_2(GameNode::onTouchesBegan, this);
     eventDispatcher->addEventListenerWithSceneGraphPriority(listener, this);
 
     return true;
@@ -170,30 +180,53 @@ bool GameNode::init()
 
 void GameNode::update(float dt)
 {
-    updateTilemap(dt);
+    updateScroll(dt);
     updateActor(dt);
 
     // accelerate game
     _gameSpeed += dt * 3;
 }
 
-void GameNode::updateTilemap(float dt)
+void GameNode::updateScroll(float dt)
 {
+    // foreground and background moves at different speed
+
+    //
+    // Foreground
+    //
     float dx = dt * _gameSpeed;
 
-    // update tilemaps
-    auto pos1 = _tilemap1->getPosition();
-    auto pos2 = _tilemap2->getPosition();
+    // update ground
+    auto pos1 = _ground0->getPosition();
+    auto pos2 = _ground1->getPosition();
     pos1.x -= dx;
     pos2.x -= dx;
 
-    if (pos1.x < -_tilemap1->getContentSize().width)
-        pos1.x += _tilemap2->getContentSize().width * 2;
-    if (pos2.x < -_tilemap2->getContentSize().width)
-        pos2.x += _tilemap1->getContentSize().width * 2;
+    if (pos1.x < -_ground0->getContentSize().width)
+        pos1.x += _ground1->getContentSize().width * 2;
+    if (pos2.x < -_ground1->getContentSize().width)
+        pos2.x += _ground0->getContentSize().width * 2;
 
-    _tilemap1->setPosition(pos1);
-    _tilemap2->setPosition(pos2);
+    _ground0->setPosition(pos1);
+    _ground1->setPosition(pos2);
+
+    //
+    // Background
+    //
+    dx *= BACKGROUND_SPEED;
+
+    pos1 = _background0->getPosition();
+    pos2 = _background1->getPosition();
+    pos1.x -= dx;
+    pos2.x -= dx;
+
+    if (pos1.x < -_background0->getContentSize().width)
+        pos1.x += _background1->getContentSize().width * 2;
+    if (pos2.x < -_background1->getContentSize().width)
+        pos2.x += _background0->getContentSize().width * 2;
+
+    _background0->setPosition(pos1);
+    _background1->setPosition(pos2);
 }
 
 void GameNode::updateActor(float dt)
@@ -201,7 +234,7 @@ void GameNode::updateActor(float dt)
     if (_actorMode==ActorMode::JUMPING_UP)
     {
         _accelTime += dt;
-        _actorVel.y -= GRAVITY * _accelTime;
+        _actorVel.y -= GRAVITY_Y * _accelTime;
 
         Vec2 pos = _actor->getPosition();
         pos.y += _actorVel.y;
@@ -219,7 +252,7 @@ void GameNode::updateActor(float dt)
     else if (_actorMode==ActorMode::JUMPING_DOWN)
     {
         _accelTime += dt;
-        _actorVel.y -= GRAVITY * _accelTime;
+        _actorVel.y -= GRAVITY_Y * _accelTime;
 
         Vec2 pos = _actor->getPosition();
         pos.y += _actorVel.y;
@@ -227,16 +260,26 @@ void GameNode::updateActor(float dt)
         if (pos.y <= ACTOR_POS_Y) {
             pos.y = ACTOR_POS_Y;
             _actor->stopAllActions();
-            _actor->runAction(_runAction);
-            _actorMode = ActorMode::RUNNING;
+            _actorMode = ActorMode::CROUCH;
+            _actor->setSpriteFrame("runnerCrouch0.png");
+            _elapsedTime = 0;
         }
         _actor->setPosition(pos);
     }
+    else if (_actorMode==ActorMode::CROUCH)
+    {
+        _elapsedTime += dt;
+        if (_elapsedTime >0.1) {
+            _actor->stopAllActions();
+            _actor->runAction(_runAction);
+            _actorMode = ActorMode::RUNNING;
+        }
+    }
 }
 
-void GameNode::onTouchesEnded(const std::vector<Touch*>& touches, Event* event)
+void GameNode::onTouchesBegan(const std::vector<Touch*>& touches, Event* event)
 {
-    if (_actorMode == ActorMode::RUNNING)
+    if (_actorMode == ActorMode::RUNNING || _actorMode == ActorMode::CROUCH)
         jump();
 }
 
@@ -245,6 +288,6 @@ void GameNode::jump()
     _actorMode = ActorMode::JUMPING_UP;
     _actor->stopAllActions();
     _actor->runAction(_jumpUpAction);
-    _actorVel = Vec2(0, 10);          // pixels per seconds going up
+    _actorVel = Vec2(0, JUMP_VEL_Y);          // pixels per seconds going up
     _accelTime = 0;
 }
