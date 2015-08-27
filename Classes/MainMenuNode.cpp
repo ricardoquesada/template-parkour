@@ -23,6 +23,7 @@
  ****************************************************************************/
 
 #include "MainMenuNode.h"
+#include "GameNode.h"
 
 using namespace cocos2d;
 
@@ -94,7 +95,7 @@ bool MainMenuNode::init()
 
     // set callback for menu using C++11 lambda feature
     item->setCallback([](Ref* sender){
-        // do something
+        Director::getInstance()->replaceScene(createSceneWithGame());
     });
 
     // center menu
