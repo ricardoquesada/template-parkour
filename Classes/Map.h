@@ -34,5 +34,5 @@ struct Map
     cocos2d::Size item_size;
 };
 
-const Map* getMap(int mapIndex);
+const Map* getGetReadyMap();
 const Map* getRandomMap();

@@ -25,6 +25,8 @@
 #include "MainMenuNode.h"
 #include "GameNode.h"
 
+#include "audio/include/SimpleAudioEngine.h"
+
 using namespace cocos2d;
 
 Scene* createSceneWithMainMenu()
@@ -67,6 +69,14 @@ bool MainMenuNode::init()
     // call super
     if ( !Node::init() )
         return false;
+
+    // play background music and preload effects
+    auto audio = CocosDenshion::SimpleAudioEngine::getInstance();
+//    audio->playBackgroundMusic("res/background.mp3", true);
+    audio->preloadEffect("res/jump.mp3");
+    audio->preloadEffect("res/pickup_coin.mp3");
+    audio->preloadEffect("res/crouch.mp3");
+
 
     // nodes has a default size of (0,0).
     // in order to use setNormalizedPosition correctly, we should set a size

@@ -25,13 +25,15 @@
 #include "GameNode.h"
 #include "Map.h"
 
+#include "audio/include/SimpleAudioEngine.h"
+
 using namespace cocos2d;
 
 static const float FOREGROUND_SPEED = 250;      // pixels per second
 static const float BACKGROUND_SPEED = 0.1;      // 10% of foreground speed
 static const float ACTOR_POS_Y = 60;
 static const float JUMP_VEL_Y = 4.5;
-static const float GRAVITY_Y = 1.5;
+static const float GRAVITY_Y = 2.5;
 static const float BUTTON_MAX_TIME = 0.4;       // max seconds that button can be pressed
 
 enum {
@@ -100,15 +102,14 @@ bool GameNode::init()
     _ground1->setPosition(Vec2(_ground0->getContentSize().width,0));
 
 
-
     // add player animations for frame cache
     auto frameCache = SpriteFrameCache::getInstance();
     frameCache->addSpriteFramesWithFile("res/parkour.plist");
 
     // create main sprite
     _actor = Sprite::createWithSpriteFrameName("runner0.png");
-    _actor->setAnchorPoint(Vec2(0.5,0));
-    _actor->setPosition(128,ACTOR_POS_Y);
+    _actor->setAnchorPoint(Vec2::ZERO);
+    _actor->setPosition(30,ACTOR_POS_Y);
     addChild(_actor);
 
     // create the animations
@@ -173,8 +174,7 @@ bool GameNode::init()
     _jumpUpAction->retain();
     _jumpDownAction->retain();
 
-    _actor->runAction(_runAction);
-    _actorMode = ActorMode::RUNNING;
+    actorRun();
 
     // initial game speed. How many pixels per second
     _gameSpeed = FOREGROUND_SPEED;
@@ -189,17 +189,40 @@ bool GameNode::init()
     listener->onTouchesEnded = CC_CALLBACK_2(GameNode::onTouchesEnded, this);
     eventDispatcher->addEventListenerWithSceneGraphPriority(listener, this);
 
+    // Get Ready Map at the beginning of the level
+    auto map = getGetReadyMap();
+    addMap(map);
+
     return true;
 }
 
 void GameNode::update(float dt)
 {
-    updateScroll(dt);
-    updateActor(dt);
-    updateObjects(dt);
+    if (_actorMode != ActorMode::GAMEOVER)
+    {
+        _prevActorPos = _actor->getPosition();
 
-    // accelerate game
-    _gameSpeed += dt * 3;
+        processEvents(dt);
+        updateScroll(dt);
+        updateActor(dt);
+        updateObjects(dt);
+        checkCollisions(dt);
+
+        // accelerate game
+        _gameSpeed += dt * 2;
+    }
+}
+
+void GameNode::processEvents(float dt)
+{
+    if (_actorMode == ActorMode::RUNNING || _actorMode == ActorMode::CROUCH)
+    {
+        if (_buttonMode == ButtonMode::PRESSED)
+        {
+            actorJump();
+            _buttonPressedTime = 0;
+        }
+    }
 }
 
 void GameNode::updateScroll(float dt)
@@ -251,7 +274,6 @@ void GameNode::updateActor(float dt)
 
         if (_buttonPressedTime > BUTTON_MAX_TIME) {
             _buttonMode = ButtonMode::RELEASED;
-            CCLOG("released");
         }
     }
 
@@ -269,12 +291,8 @@ void GameNode::updateActor(float dt)
         pos.y += _actorVel.y;
 
         // started going down ?
-        if (_actorVel.y <= 0) {
-            _actor->stopAllActions();
-            _actor->runAction(_jumpDownAction);
-            _actorMode = ActorMode::JUMPING_DOWN;
-            _accelTime = 0;
-        }
+        if (_actorVel.y <= 0)
+            actorGoDown();
 
         _actor->setPosition(pos);
     }
@@ -288,21 +306,18 @@ void GameNode::updateActor(float dt)
 
         if (pos.y <= ACTOR_POS_Y) {
             pos.y = ACTOR_POS_Y;
-            _actor->stopAllActions();
-            _actorMode = ActorMode::CROUCH;
-            _actor->setSpriteFrame("runnerCrouch0.png");
-            _elapsedTime = 0;
+            if (_actorVel.y<-8)
+                actorCrouch();
+            else
+                actorRun();
         }
         _actor->setPosition(pos);
     }
     else if (_actorMode==ActorMode::CROUCH)
     {
         _elapsedTime += dt;
-        if (_elapsedTime >0.15) {
-            _actor->stopAllActions();
-            _actor->runAction(_runAction);
-            _actorMode = ActorMode::RUNNING;
-        }
+        if (_elapsedTime >0.15)
+            actorRun();
     }
 }
 
@@ -339,29 +354,126 @@ void GameNode::updateObjects(float dt)
     addObjects(dt);
 }
 
+void GameNode::checkCollisions(float dt)
+{
+    Vector<Sprite*> toRemove;
+
+    Rect actorBB = _actor->getBoundingBox();
+    // reduce BB by some pixels in X
+    actorBB.origin.x += 30;
+    actorBB.size.width -= 50;
+
+    bool collision = false;
+    // objects are sorted by their X position.
+    // the first object whose X positions is > actor.X + actor.with
+    // then, it is safe to stop the check
+    for(const auto& object: _objects)
+    {
+        Rect objbb = object->getBoundingBox();
+
+        if (actorBB.intersectsRect(objbb))
+        {
+            collision = true;
+            long objType = (long)object->getUserData();
+            if (objType == COIN) {
+                toRemove.pushBack(object);
+                CocosDenshion::SimpleAudioEngine::getInstance()->playEffect("res/pickup_coin.mp3");
+            }
+            else if (objType == BOX || objType == ANVIL)
+            {
+                // actor can run on top boxes, but a right collision is game over
+                // actor on top, and the collision is no bigger than 10 pixels
+                if ((objbb.origin.y + objbb.size.height - _prevActorPos.y) < 0)
+                {
+                    auto pos = _actor->getPosition();
+                    _actor->setPosition(pos.x,objbb.origin.y + objbb.size.height);
+                    actorRun();
+                }
+                else if (_actorVel.y==0 && (objbb.origin.y + objbb.size.height - actorBB.origin.y) == 0)
+                {
+                    // skip
+                }
+                else
+                {
+                    gameOver();
+                }
+            }
+        }
+    }
+
+    // running and no collision? and not on the ground ? then go down
+    if (!collision && _actorMode==ActorMode::RUNNING && actorBB.origin.y > ACTOR_POS_Y)
+        actorGoDown();
+
+    for (const auto& object: toRemove) {
+        removeChild(object);
+        _objects.eraseObject(object);
+    }
+}
+
 void GameNode::onTouchesBegan(const std::vector<Touch*>& touches, Event* event)
 {
-    if (_actorMode == ActorMode::RUNNING || _actorMode == ActorMode::CROUCH) {
-        jump();
-        _buttonMode = ButtonMode::PRESSED;
-        _buttonPressedTime = 0;
-        CCLOG("pressed");
-    }
+    _buttonMode = ButtonMode::PRESSED;
 }
 
 void GameNode::onTouchesEnded(const std::vector<Touch*>& touches, Event* event)
 {
     _buttonMode = ButtonMode::RELEASED;
-    CCLOG("released");
 }
 
-void GameNode::jump()
+void GameNode::gameOver()
+{
+    _actorMode = ActorMode::GAMEOVER;
+    _actor->stopAllActions();
+
+    auto item = MenuItemImage::create("res/restart_n.png", "res/restart_s.png");
+    auto menu = Menu::create(item, NULL);
+    // set callback for menu using C++11 lambda feature
+    item->setCallback([](Ref* sender){
+        Director::getInstance()->replaceScene(createSceneWithGame());
+    });
+    // center menu
+    menu->setNormalizedPosition(Vec2(0.5,0.8));
+    addChild(menu);
+}
+
+void GameNode::actorJump()
 {
     _actorMode = ActorMode::JUMPING_UP;
     _actor->stopAllActions();
     _actor->runAction(_jumpUpAction);
     _actorVel = Vec2(0, JUMP_VEL_Y);          // pixels per seconds going up
     _accelTime = 0;
+
+    CocosDenshion::SimpleAudioEngine::getInstance()->playEffect("res/jump.mp3");
+}
+
+void GameNode::actorGoDown()
+{
+    _actor->stopAllActions();
+    _actor->runAction(_jumpDownAction);
+    _actorMode = ActorMode::JUMPING_DOWN;
+    _accelTime = 0;
+    if (_actorVel.y >= 0) {
+        _actorVel.y = -3;
+    }
+}
+
+void GameNode::actorRun()
+{
+    _actorMode = ActorMode::RUNNING;
+    _actor->stopAllActions();
+    _actor->runAction(_runAction);
+    _actorVel = Vec2::ZERO;
+}
+
+void GameNode::actorCrouch()
+{
+    _actor->stopAllActions();
+    _actorMode = ActorMode::CROUCH;
+    _actor->setSpriteFrame("runnerCrouch0.png");
+    _elapsedTime = 0;
+    _actorVel = Vec2::ZERO;
 }
 
 void GameNode::addObjects(float dt)
@@ -371,20 +483,24 @@ void GameNode::addObjects(float dt)
     if (_objects.size()==0) {
 
         auto map = getRandomMap();
+        addMap(map);
+    }
+}
 
-        for (int x=0; x<map->buffer_size.width; x++)
+void GameNode::addMap(const ::Map* map)
+{
+    for (int x=0; x<map->buffer_size.width; x++)
+    {
+        for (int y=0; y<map->buffer_size.height; y++)
         {
-            for (int y=0; y<map->buffer_size.height; y++)
-            {
-                int yy = map->buffer_size.height-y-1;
-                char c = map->buffer[y][x];
-                if (c=='C')
-                    addCoin(x,yy,map->item_size);
-                else if (c=='B')
-                    addBox(x,yy,map->item_size);
-                else if (c=='A')
-                    addAnvil(x,yy,map->item_size);
-            }
+            int yy = map->buffer_size.height-y-1;
+            char c = map->buffer[y][x];
+            if (c=='C')
+                addCoin(x,yy,map->item_size);
+            else if (c=='B')
+                addBox(x,yy,map->item_size);
+            else if (c=='A')
+                addAnvil(x,yy,map->item_size);
         }
     }
 }

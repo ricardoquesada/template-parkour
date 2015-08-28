@@ -56,12 +56,19 @@ protected:
     void updateScroll(float dt);
     void updateActor(float dt);
     void updateObjects(float dt);
+    void checkCollisions(float dt);
 
     void addObjects(float dt);
+    void addMap(const Map* map);
 
     void onTouchesBegan(const std::vector<cocos2d::Touch*>& touches, cocos2d::Event* event);
     void onTouchesEnded(const std::vector<cocos2d::Touch*>& touches, cocos2d::Event* event);
-    void jump();
+    void actorJump();
+    void actorGoDown();
+    void actorRun();
+    void actorCrouch();
+    void gameOver();
+    void processEvents(float dt);
 
     void addCoin(int x, int y, const cocos2d::Size& item_size);
     void addBox(int x, int y, const cocos2d::Size& item_size);
@@ -89,6 +96,7 @@ protected:
     cocos2d::Sprite* _actor;
     ActorMode _actorMode;
     cocos2d::Vec2 _actorVel;
+    cocos2d::Vec2 _prevActorPos;            // useful for collision detection
     float _accelTime;
     float _elapsedTime;                     // calculates elapsed time for crouch mode
 };
