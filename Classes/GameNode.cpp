@@ -23,6 +23,7 @@
  ****************************************************************************/
 
 #include "GameNode.h"
+#include "Map.h"
 
 using namespace cocos2d;
 
@@ -31,7 +32,7 @@ static const float BACKGROUND_SPEED = 0.1;      // 10% of foreground speed
 static const float ACTOR_POS_Y = 60;
 static const float JUMP_VEL_Y = 4.5;
 static const float GRAVITY_Y = 1.5;
-static const float BUTTON_MAX_TIME = 0.5;       // max seconds that button can be pressed
+static const float BUTTON_MAX_TIME = 0.4;       // max seconds that button can be pressed
 
 enum {
     COIN = 0,
@@ -297,7 +298,7 @@ void GameNode::updateActor(float dt)
     else if (_actorMode==ActorMode::CROUCH)
     {
         _elapsedTime += dt;
-        if (_elapsedTime >0.1) {
+        if (_elapsedTime >0.15) {
             _actor->stopAllActions();
             _actor->runAction(_runAction);
             _actorMode = ActorMode::RUNNING;
@@ -354,7 +355,6 @@ void GameNode::onTouchesEnded(const std::vector<Touch*>& touches, Event* event)
     CCLOG("released");
 }
 
-
 void GameNode::jump()
 {
     _actorMode = ActorMode::JUMPING_UP;
@@ -369,64 +369,49 @@ void GameNode::addObjects(float dt)
     // if there are no more objects
     // on the screen, then add more.
     if (_objects.size()==0) {
-        // there 10 different pattern for objects.
-        // choose one at random
-//        int pattern = CCRANDOM_0_1() * 10;
 
-        const char* objects[5] = {
-            "...........C...C..C.............AAA.....",
-            "...........C...C..C.....................",
-            "...........CCCCC..C.....................",
-            "...B.......C...C..C.....B...............",
-            "..BBB......C...C..C....BBB.............."
-        };
+        auto map = getRandomMap();
 
-        const int TOTAL_X = 40;
-        const int TOTAL_Y = 5;
-
-        for (int x=0; x<TOTAL_X; x++)
+        for (int x=0; x<map->buffer_size.width; x++)
         {
-            for (int y=0; y<TOTAL_Y; y++)
+            for (int y=0; y<map->buffer_size.height; y++)
             {
-                int yy = TOTAL_Y-y-1;
-                char c = objects[y][x];
+                int yy = map->buffer_size.height-y-1;
+                char c = map->buffer[y][x];
                 if (c=='C')
-                    addCoin(x,yy);
+                    addCoin(x,yy,map->item_size);
                 else if (c=='B')
-                    addBox(x,yy);
+                    addBox(x,yy,map->item_size);
                 else if (c=='A')
-                    addAnvil(x,yy);
+                    addAnvil(x,yy,map->item_size);
             }
         }
     }
 }
 
-void GameNode::addCoin(int x, int y)
+void GameNode::addCoin(int x, int y, const Size& item_size)
 {
-    auto sprite = createObject(x, y, "coin0.png");
+    auto sprite = createObject(x, y, "coin0.png", item_size);
     sprite->setUserData((void*)COIN);
 }
-void GameNode::addBox(int x, int y)
+void GameNode::addBox(int x, int y, const Size& item_size)
 {
-    auto sprite = createObject(x, y, "box.png");
+    auto sprite = createObject(x, y, "box.png", item_size);
     sprite->setUserData((void*)BOX);
 }
-void GameNode::addAnvil(int x, int y)
+void GameNode::addAnvil(int x, int y, const Size& item_size)
 {
-    auto sprite = createObject(x, y, "anvil.png");
+    auto sprite = createObject(x, y, "anvil.png", item_size);
     sprite->setUserData((void*)ANVIL);
 }
 
-Sprite* GameNode::createObject(int x, int y, const std::string& spriteName)
+Sprite* GameNode::createObject(int x, int y, const std::string& spriteName, const Size& item_size)
 {
-    int SPACE_X = 56;
-    int SPACE_Y = 44;
-
     auto sprite = Sprite::createWithSpriteFrameName(spriteName);
     sprite->setAnchorPoint(Vec2::ZERO);
     addChild(sprite);
     auto screenSize = Director::getInstance()->getVisibleSize();
-    sprite->setPosition(screenSize.width + x * SPACE_X, ACTOR_POS_Y + y * SPACE_Y);
+    sprite->setPosition(screenSize.width + x * item_size.width, ACTOR_POS_Y + y * item_size.height);
 
     _objects.pushBack(sprite);
     return sprite;

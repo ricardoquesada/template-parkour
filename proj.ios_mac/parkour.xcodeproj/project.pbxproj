@@ -26,6 +26,8 @@
 		503AE11B17EB9C5A00D1A890 /* IOKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 503AE11A17EB9C5A00D1A890 /* IOKit.framework */; };
 		5060629C1B8E38D600183820 /* GameNode.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5060629A1B8E38D600183820 /* GameNode.cpp */; };
 		5060629D1B8E38D600183820 /* GameNode.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5060629A1B8E38D600183820 /* GameNode.cpp */; };
+		506062A91B9011CA00183820 /* Map.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 506062A71B9011CA00183820 /* Map.cpp */; };
+		506062AA1B9011CA00183820 /* Map.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 506062A71B9011CA00183820 /* Map.cpp */; };
 		5087E76317EB910900C73F5D /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1D30AB110D05D00D00671497 /* Foundation.framework */; };
 		5087E76717EB910900C73F5D /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = BF170DB412928DE900B8313A /* libz.dylib */; };
 		5087E76817EB910900C73F5D /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BF1C47EA1293683800B63C5D /* QuartzCore.framework */; };
@@ -122,6 +124,8 @@
 		503AE11A17EB9C5A00D1A890 /* IOKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = IOKit.framework; path = System/Library/Frameworks/IOKit.framework; sourceTree = SDKROOT; };
 		5060629A1B8E38D600183820 /* GameNode.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = GameNode.cpp; sourceTree = "<group>"; };
 		5060629B1B8E38D600183820 /* GameNode.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GameNode.h; sourceTree = "<group>"; };
+		506062A71B9011CA00183820 /* Map.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Map.cpp; sourceTree = "<group>"; };
+		506062A81B9011CA00183820 /* Map.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Map.h; sourceTree = "<group>"; };
 		5087E76F17EB910900C73F5D /* parkour-desktop.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "parkour-desktop.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		5087E77217EB970100C73F5D /* Default-568h@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Default-568h@2x.png"; sourceTree = "<group>"; };
 		5087E77317EB970100C73F5D /* Default.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = Default.png; sourceTree = "<group>"; };
@@ -291,6 +295,8 @@
 				46880B8719C43A87006E1F66 /* MainMenuNode.h */,
 				5060629A1B8E38D600183820 /* GameNode.cpp */,
 				5060629B1B8E38D600183820 /* GameNode.h */,
+				506062A71B9011CA00183820 /* Map.cpp */,
+				506062A81B9011CA00183820 /* Map.h */,
 			);
 			name = Classes;
 			path = ../Classes;
@@ -481,6 +487,7 @@
 				46880B8A19C43A87006E1F66 /* MainMenuNode.cpp in Sources */,
 				503AE10017EB989F00D1A890 /* AppController.mm in Sources */,
 				503AE10217EB989F00D1A890 /* RootViewController.mm in Sources */,
+				506062A91B9011CA00183820 /* Map.cpp in Sources */,
 				503AE10117EB989F00D1A890 /* main.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -490,6 +497,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				46880B8919C43A87006E1F66 /* AppDelegate.cpp in Sources */,
+				506062AA1B9011CA00183820 /* Map.cpp in Sources */,
 				5060629D1B8E38D600183820 /* GameNode.cpp in Sources */,
 				503AE10517EB98FF00D1A890 /* main.cpp in Sources */,
 				46880B8B19C43A87006E1F66 /* MainMenuNode.cpp in Sources */,

@@ -25,6 +25,7 @@
 #pragma once
 
 #include "cocos2d.h"
+#include "Map.h"
 
 cocos2d::Scene* createSceneWithGame();
 
@@ -62,10 +63,10 @@ protected:
     void onTouchesEnded(const std::vector<cocos2d::Touch*>& touches, cocos2d::Event* event);
     void jump();
 
-    void addCoin(int x, int y);
-    void addBox(int x, int y);
-    void addAnvil(int x, int y);
-    cocos2d::Sprite* createObject(int x, int y, const std::string& spriteName);
+    void addCoin(int x, int y, const cocos2d::Size& item_size);
+    void addBox(int x, int y, const cocos2d::Size& item_size);
+    void addAnvil(int x, int y, const cocos2d::Size& item_size);
+    cocos2d::Sprite* createObject(int x, int y, const std::string& spriteName, const cocos2d::Size& item_size);
 
     // 2 images for the ground
     cocos2d::Sprite* _ground0;
