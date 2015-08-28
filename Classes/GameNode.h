@@ -52,10 +52,15 @@ protected:
     GameNode();
     virtual ~GameNode();
 
+    void initActorAnimation();
+    void initCoinAnimation();
+    void initScore();
+
     virtual void update(float dt);
     void updateScroll(float dt);
     void updateActor(float dt);
     void updateObjects(float dt);
+    void updateScore(float dt);
     void checkCollisions(float dt);
 
     void addObjects(float dt);
@@ -86,17 +91,21 @@ protected:
     cocos2d::Action* _jumpUpAction;
     cocos2d::Action* _jumpDownAction;
 
-    cocos2d::Vector<cocos2d::Sprite*> _objects;
+    cocos2d::Action* _coinAnimation[8];
 
+    cocos2d::Vector<cocos2d::Sprite*> _objects;
+    cocos2d::Label* _score;
+
+    int _elapsedPixels;                 // score will be based on this ivar
     float _gameSpeed;
     
-    float _buttonPressedTime;                       // for how long the button was pressed
-    ButtonMode _buttonMode;                         // pressed or released ?
+    float _buttonPressedTime;           // for how long the button was pressed
+    ButtonMode _buttonMode;             // pressed or released ?
 
     cocos2d::Sprite* _actor;
     ActorMode _actorMode;
     cocos2d::Vec2 _actorVel;
-    cocos2d::Vec2 _prevActorPos;            // useful for collision detection
+    cocos2d::Vec2 _prevActorPos;        // useful for collision detection
     float _accelTime;
-    float _elapsedTime;                     // calculates elapsed time for crouch mode
+    float _elapsedTime;                 // calculates elapsed time for crouch mode
 };

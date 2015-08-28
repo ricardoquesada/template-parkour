@@ -23,8 +23,10 @@
  ****************************************************************************/
 
 #include "GameNode.h"
-#include "Map.h"
 
+#include <stdio.h>
+
+#include "Map.h"
 #include "audio/include/SimpleAudioEngine.h"
 
 using namespace cocos2d;
@@ -64,6 +66,7 @@ GameNode::GameNode()
 , _elapsedTime(0)
 , _buttonPressedTime(0)
 , _gameSpeed(FOREGROUND_SPEED)
+, _elapsedPixels(0)
 {
 }
 
@@ -72,6 +75,9 @@ GameNode::~GameNode()
     CC_SAFE_RELEASE(_runAction);
     CC_SAFE_RELEASE(_jumpDownAction);
     CC_SAFE_RELEASE(_jumpUpAction);
+
+    for (int i=0; i<8; i++)
+        CC_SAFE_RELEASE(_coinAnimation[i]);
 }
 
 bool GameNode::init()
@@ -101,7 +107,42 @@ bool GameNode::init()
     // _ground1 right after _ground0
     _ground1->setPosition(Vec2(_ground0->getContentSize().width,0));
 
+    initActorAnimation();
+    initCoinAnimation();
+    initScore();
 
+    actorRun();
+
+    // initial game speed. How many pixels per second
+    _gameSpeed = FOREGROUND_SPEED;
+
+    // trigger main loop
+    scheduleUpdate();
+
+    // call me when there are touches
+    auto eventDispatcher = Director::getInstance()->getEventDispatcher();
+    auto listener = EventListenerTouchAllAtOnce::create();
+    listener->onTouchesBegan = CC_CALLBACK_2(GameNode::onTouchesBegan, this);
+    listener->onTouchesEnded = CC_CALLBACK_2(GameNode::onTouchesEnded, this);
+    eventDispatcher->addEventListenerWithSceneGraphPriority(listener, this);
+
+    // Get Ready Map at the beginning of the level
+    auto map = getGetReadyMap();
+    addMap(map);
+
+    return true;
+}
+
+void GameNode::initScore()
+{
+    _score = Label::createWithCharMap("res/font_grinched_21.png", 16, 24, '0');
+    _score->setString(":::::0");
+    _score->setAnchorPoint(Vec2(1,1));
+    addChild(_score);
+    _score->setNormalizedPosition(Vec2(0.98,0.98));
+}
+void GameNode::initActorAnimation()
+{
     // add player animations for frame cache
     auto frameCache = SpriteFrameCache::getInstance();
     frameCache->addSpriteFramesWithFile("res/parkour.plist");
@@ -163,7 +204,6 @@ bool GameNode::init()
     }
     auto jumpDownAnimation = Animation::createWithSpriteFrames(jumpDownFrames, 0.2);
 
-
     // in order to animate the animation, we need to create an "Animate" action
     auto animate = Animate::create(runAnimation);
     _runAction = RepeatForever::create(animate);
@@ -173,27 +213,27 @@ bool GameNode::init()
     _runAction->retain();
     _jumpUpAction->retain();
     _jumpDownAction->retain();
+}
 
-    actorRun();
-
-    // initial game speed. How many pixels per second
-    _gameSpeed = FOREGROUND_SPEED;
-
-    // trigger main loop
-    scheduleUpdate();
-
-    // call me when there are touches
-    auto eventDispatcher = Director::getInstance()->getEventDispatcher();
-    auto listener = EventListenerTouchAllAtOnce::create();
-    listener->onTouchesBegan = CC_CALLBACK_2(GameNode::onTouchesBegan, this);
-    listener->onTouchesEnded = CC_CALLBACK_2(GameNode::onTouchesEnded, this);
-    eventDispatcher->addEventListenerWithSceneGraphPriority(listener, this);
-
-    // Get Ready Map at the beginning of the level
-    auto map = getGetReadyMap();
-    addMap(map);
-
-    return true;
+void GameNode::initCoinAnimation()
+{
+    auto frameCache = SpriteFrameCache::getInstance();
+    const int COINS_FRAMES = 8;
+    for (int i=0; i<COINS_FRAMES; i++)
+    {
+        Vector<SpriteFrame*> coinsFrames(COINS_FRAMES);
+        for (int j=0; j<COINS_FRAMES; j++)
+        {
+            char buffer[40];
+            snprintf(buffer, sizeof(buffer)-1,"coin%d.png",(j+i)%8);
+            auto frame = frameCache->getSpriteFrameByName(buffer);
+            coinsFrames.pushBack(frame);
+        }
+        auto coinsAnimation = Animation::createWithSpriteFrames(coinsFrames, 0.05);
+        auto animateCoin = Animate::create(coinsAnimation);
+        _coinAnimation[i] = RepeatForever::create(animateCoin);
+        _coinAnimation[i]->retain();
+    }
 }
 
 void GameNode::update(float dt)
@@ -202,14 +242,16 @@ void GameNode::update(float dt)
     {
         _prevActorPos = _actor->getPosition();
 
+        // accelerate game
+        _gameSpeed += dt * 2;
+
         processEvents(dt);
         updateScroll(dt);
         updateActor(dt);
         updateObjects(dt);
+        updateScore(dt);
         checkCollisions(dt);
 
-        // accelerate game
-        _gameSpeed += dt * 2;
     }
 }
 
@@ -225,6 +267,14 @@ void GameNode::processEvents(float dt)
     }
 }
 
+void GameNode::updateScore(float dt)
+{
+    _elapsedPixels += dt * _gameSpeed;
+
+    char buffer[40];
+    snprintf(buffer,sizeof(buffer)-1,"%d",_elapsedPixels);
+    _score->setString(buffer);
+}
 void GameNode::updateScroll(float dt)
 {
     // foreground and background moves at different speed
@@ -509,6 +559,7 @@ void GameNode::addCoin(int x, int y, const Size& item_size)
 {
     auto sprite = createObject(x, y, "coin0.png", item_size);
     sprite->setUserData((void*)COIN);
+    sprite->runAction(_coinAnimation[(x+y)%8]->clone());
 }
 void GameNode::addBox(int x, int y, const Size& item_size)
 {
