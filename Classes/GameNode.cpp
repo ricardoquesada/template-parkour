@@ -28,10 +28,16 @@ using namespace cocos2d;
 
 static const float FOREGROUND_SPEED = 250;      // pixels per second
 static const float BACKGROUND_SPEED = 0.1;      // 10% of foreground speed
-static const float ACTOR_POS_Y = 30;
-static const float JUMP_VEL_Y = 4;
-static const float GRAVITY_Y = 1;
+static const float ACTOR_POS_Y = 60;
+static const float JUMP_VEL_Y = 4.5;
+static const float GRAVITY_Y = 1.5;
+static const float BUTTON_MAX_TIME = 0.5;       // max seconds that button can be pressed
 
+enum {
+    COIN = 0,
+    BOX = 1,
+    ANVIL = 2
+};
 Scene* createSceneWithGame()
 {
     auto scene = Scene::create();
@@ -51,6 +57,10 @@ GameNode* GameNode::create()
 }
 
 GameNode::GameNode()
+: _buttonMode(RELEASED)
+, _elapsedTime(0)
+, _buttonPressedTime(0)
+, _gameSpeed(FOREGROUND_SPEED)
 {
 }
 
@@ -81,6 +91,8 @@ bool GameNode::init()
     // 2 sprites that will generate a fake "endless scroll"
     _ground0 = Sprite::create("res/ground00.png");
     _ground1 = Sprite::create("res/ground01.png");
+    _ground0->setAnchorPoint(Vec2::ZERO);
+    _ground1->setAnchorPoint(Vec2::ZERO);
     addChild(_ground0);
     addChild(_ground1);
     // _ground1 right after _ground0
@@ -173,6 +185,7 @@ bool GameNode::init()
     auto eventDispatcher = Director::getInstance()->getEventDispatcher();
     auto listener = EventListenerTouchAllAtOnce::create();
     listener->onTouchesBegan = CC_CALLBACK_2(GameNode::onTouchesBegan, this);
+    listener->onTouchesEnded = CC_CALLBACK_2(GameNode::onTouchesEnded, this);
     eventDispatcher->addEventListenerWithSceneGraphPriority(listener, this);
 
     return true;
@@ -182,6 +195,7 @@ void GameNode::update(float dt)
 {
     updateScroll(dt);
     updateActor(dt);
+    updateObjects(dt);
 
     // accelerate game
     _gameSpeed += dt * 3;
@@ -231,16 +245,30 @@ void GameNode::updateScroll(float dt)
 
 void GameNode::updateActor(float dt)
 {
+    if (_buttonMode == ButtonMode::PRESSED) {
+        _buttonPressedTime += dt;
+
+        if (_buttonPressedTime > BUTTON_MAX_TIME) {
+            _buttonMode = ButtonMode::RELEASED;
+            CCLOG("released");
+        }
+    }
+
     if (_actorMode==ActorMode::JUMPING_UP)
     {
         _accelTime += dt;
-        _actorVel.y -= GRAVITY_Y * _accelTime;
+
+        // reduce gravity while button is pressed
+        if (_buttonMode == ButtonMode::PRESSED)
+            _actorVel.y -= (GRAVITY_Y *0.01) * _accelTime;
+        else
+            _actorVel.y -= GRAVITY_Y * _accelTime;
 
         Vec2 pos = _actor->getPosition();
         pos.y += _actorVel.y;
 
-        if (pos.y >= ACTOR_POS_Y + 50) {
-            pos.y = ACTOR_POS_Y + 50;
+        // started going down ?
+        if (_actorVel.y <= 0) {
             _actor->stopAllActions();
             _actor->runAction(_jumpDownAction);
             _actorMode = ActorMode::JUMPING_DOWN;
@@ -277,11 +305,55 @@ void GameNode::updateActor(float dt)
     }
 }
 
+void GameNode::updateObjects(float dt)
+{
+    // 1 - scroll objects
+    float dx = dt * _gameSpeed;
+    for (Sprite* sprite: _objects)
+    {
+        auto pos = sprite->getPosition();
+        sprite->setPosition(pos.x-dx,pos.y);
+    }
+
+    // 2 - remove objects no longer visible
+    Vector<Sprite*> toRemove;
+
+    // objects are ordered in X
+    // if an object is still in the screen, it is safe
+    // to assume that the rest of the objects are still inside the
+    // screen too.
+    for (const auto& object: _objects)
+    {
+        auto& pos = object->getPosition();
+        auto& size = object->getContentSize();
+        if (pos.x+size.width+50 < 0)
+            toRemove.pushBack(object);
+        else
+            break;
+    }
+
+    for (const auto& object: toRemove)
+        _objects.eraseObject(object);
+
+    addObjects(dt);
+}
+
 void GameNode::onTouchesBegan(const std::vector<Touch*>& touches, Event* event)
 {
-    if (_actorMode == ActorMode::RUNNING || _actorMode == ActorMode::CROUCH)
+    if (_actorMode == ActorMode::RUNNING || _actorMode == ActorMode::CROUCH) {
         jump();
+        _buttonMode = ButtonMode::PRESSED;
+        _buttonPressedTime = 0;
+        CCLOG("pressed");
+    }
 }
+
+void GameNode::onTouchesEnded(const std::vector<Touch*>& touches, Event* event)
+{
+    _buttonMode = ButtonMode::RELEASED;
+    CCLOG("released");
+}
+
 
 void GameNode::jump()
 {
@@ -290,4 +362,72 @@ void GameNode::jump()
     _actor->runAction(_jumpUpAction);
     _actorVel = Vec2(0, JUMP_VEL_Y);          // pixels per seconds going up
     _accelTime = 0;
+}
+
+void GameNode::addObjects(float dt)
+{
+    // if there are no more objects
+    // on the screen, then add more.
+    if (_objects.size()==0) {
+        // there 10 different pattern for objects.
+        // choose one at random
+//        int pattern = CCRANDOM_0_1() * 10;
+
+        const char* objects[5] = {
+            "...........C...C..C.............AAA.....",
+            "...........C...C..C.....................",
+            "...........CCCCC..C.....................",
+            "...B.......C...C..C.....B...............",
+            "..BBB......C...C..C....BBB.............."
+        };
+
+        const int TOTAL_X = 40;
+        const int TOTAL_Y = 5;
+
+        for (int x=0; x<TOTAL_X; x++)
+        {
+            for (int y=0; y<TOTAL_Y; y++)
+            {
+                int yy = TOTAL_Y-y-1;
+                char c = objects[y][x];
+                if (c=='C')
+                    addCoin(x,yy);
+                else if (c=='B')
+                    addBox(x,yy);
+                else if (c=='A')
+                    addAnvil(x,yy);
+            }
+        }
+    }
+}
+
+void GameNode::addCoin(int x, int y)
+{
+    auto sprite = createObject(x, y, "coin0.png");
+    sprite->setUserData((void*)COIN);
+}
+void GameNode::addBox(int x, int y)
+{
+    auto sprite = createObject(x, y, "box.png");
+    sprite->setUserData((void*)BOX);
+}
+void GameNode::addAnvil(int x, int y)
+{
+    auto sprite = createObject(x, y, "anvil.png");
+    sprite->setUserData((void*)ANVIL);
+}
+
+Sprite* GameNode::createObject(int x, int y, const std::string& spriteName)
+{
+    int SPACE_X = 56;
+    int SPACE_Y = 44;
+
+    auto sprite = Sprite::createWithSpriteFrameName(spriteName);
+    sprite->setAnchorPoint(Vec2::ZERO);
+    addChild(sprite);
+    auto screenSize = Director::getInstance()->getVisibleSize();
+    sprite->setPosition(screenSize.width + x * SPACE_X, ACTOR_POS_Y + y * SPACE_Y);
+
+    _objects.pushBack(sprite);
+    return sprite;
 }

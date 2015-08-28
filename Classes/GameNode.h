@@ -38,6 +38,11 @@ class GameNode : public cocos2d::Node
         GAMEOVER
     };
 
+    enum ButtonMode {
+        PRESSED,
+        RELEASED
+    };
+
 public:
     static GameNode* create();
     bool init();
@@ -49,8 +54,18 @@ protected:
     virtual void update(float dt);
     void updateScroll(float dt);
     void updateActor(float dt);
+    void updateObjects(float dt);
+
+    void addObjects(float dt);
+
     void onTouchesBegan(const std::vector<cocos2d::Touch*>& touches, cocos2d::Event* event);
+    void onTouchesEnded(const std::vector<cocos2d::Touch*>& touches, cocos2d::Event* event);
     void jump();
+
+    void addCoin(int x, int y);
+    void addBox(int x, int y);
+    void addAnvil(int x, int y);
+    cocos2d::Sprite* createObject(int x, int y, const std::string& spriteName);
 
     // 2 images for the ground
     cocos2d::Sprite* _ground0;
@@ -63,7 +78,12 @@ protected:
     cocos2d::Action* _jumpUpAction;
     cocos2d::Action* _jumpDownAction;
 
+    cocos2d::Vector<cocos2d::Sprite*> _objects;
+
     float _gameSpeed;
+    
+    float _buttonPressedTime;                       // for how long the button was pressed
+    ButtonMode _buttonMode;                         // pressed or released ?
 
     cocos2d::Sprite* _actor;
     ActorMode _actorMode;
