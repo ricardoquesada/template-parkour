@@ -87,8 +87,8 @@ bool GameNode::init()
 
     // set background images
     // 2 sprites that will generate a fake "endless scroll"
-    _background0 = Sprite::create("res/background00.png");
-    _background1 = Sprite::create("res/background01.png");
+    _background0 = Sprite::create("background00.png");
+    _background1 = Sprite::create("background01.png");
     _background0->setAnchorPoint(Vec2::ZERO);
     _background1->setAnchorPoint(Vec2::ZERO);
     addChild(_background0);
@@ -98,8 +98,8 @@ bool GameNode::init()
 
     // set ground images
     // 2 sprites that will generate a fake "endless scroll"
-    _ground0 = Sprite::create("res/ground00.png");
-    _ground1 = Sprite::create("res/ground01.png");
+    _ground0 = Sprite::create("ground00.png");
+    _ground1 = Sprite::create("ground01.png");
     _ground0->setAnchorPoint(Vec2::ZERO);
     _ground1->setAnchorPoint(Vec2::ZERO);
     addChild(_ground0);
@@ -135,7 +135,7 @@ bool GameNode::init()
 
 void GameNode::initScore()
 {
-    _score = Label::createWithCharMap("res/font_grinched_21.png", 16, 24, '0');
+    _score = Label::createWithCharMap("font_grinched_21.png", 16, 24, '0');
     _score->setString(":::::0");
     _score->setAnchorPoint(Vec2(1,1));
     addChild(_score);
@@ -145,7 +145,7 @@ void GameNode::initActorAnimation()
 {
     // add player animations for frame cache
     auto frameCache = SpriteFrameCache::getInstance();
-    frameCache->addSpriteFramesWithFile("res/parkour.plist");
+    frameCache->addSpriteFramesWithFile("parkour.plist");
 
     // create main sprite
     _actor = Sprite::createWithSpriteFrameName("runner0.png");
@@ -427,7 +427,7 @@ void GameNode::checkCollisions(float dt)
             long objType = (long)object->getUserData();
             if (objType == COIN) {
                 toRemove.pushBack(object);
-                CocosDenshion::SimpleAudioEngine::getInstance()->playEffect("res/pickup_coin.mp3");
+                CocosDenshion::SimpleAudioEngine::getInstance()->playEffect("sfx/pickup_coin.mp3");
             }
             else if (objType == BOX || objType == ANVIL)
             {
@@ -476,7 +476,7 @@ void GameNode::gameOver()
     _actorMode = ActorMode::GAMEOVER;
     _actor->stopAllActions();
 
-    auto item = MenuItemImage::create("res/restart_n.png", "res/restart_s.png");
+    auto item = MenuItemImage::create("restart_n.png", "restart_s.png");
     auto menu = Menu::create(item, NULL);
     // set callback for menu using C++11 lambda feature
     item->setCallback([](Ref* sender){
@@ -495,7 +495,7 @@ void GameNode::actorJump()
     _actorVel = Vec2(0, JUMP_VEL_Y);          // pixels per seconds going up
     _accelTime = 0;
 
-    CocosDenshion::SimpleAudioEngine::getInstance()->playEffect("res/jump.mp3");
+    CocosDenshion::SimpleAudioEngine::getInstance()->playEffect("sfx/jump.mp3");
 }
 
 void GameNode::actorGoDown()

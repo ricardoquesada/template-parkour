@@ -72,10 +72,10 @@ bool MainMenuNode::init()
 
     // play background music and preload effects
     auto audio = CocosDenshion::SimpleAudioEngine::getInstance();
-//    audio->playBackgroundMusic("res/background.mp3", true);
-    audio->preloadEffect("res/jump.mp3");
-    audio->preloadEffect("res/pickup_coin.mp3");
-    audio->preloadEffect("res/crouch.mp3");
+//    audio->playBackgroundMusic("sfx/background.mp3", true);
+    audio->preloadEffect("sfx/jump.mp3");
+    audio->preloadEffect("sfx/pickup_coin.mp3");
+    audio->preloadEffect("sfx/crouch.mp3");
 
 
     // nodes has a default size of (0,0).
@@ -87,7 +87,7 @@ bool MainMenuNode::init()
     //
 
     // create background image
-    auto image = Sprite::create("res/menuBackground.png");
+    auto image = Sprite::create("menuBackground.png");
 
     // set it on the center of the screen
     image->setNormalizedPosition(Vec2(0.5,0.5));
@@ -100,7 +100,7 @@ bool MainMenuNode::init()
     // Menu
     //
     // create a menu with a "normal" and a "selected" image
-    auto item = MenuItemImage::create("res/start_n.png", "res/start_s.png");
+    auto item = MenuItemImage::create("start_n.png", "start_s.png");
     auto menu = Menu::create(item, NULL);
 
     // set callback for menu using C++11 lambda feature

@@ -53,24 +53,31 @@ bool AppDelegate::applicationDidFinishLaunching() {
     // set FPS. the default value is 1.0/60 if you don't call this
     director->setAnimationInterval(1.0 / 60);
 
+    std::vector<std::string> searchPath;
+
     // Set the design resolution
     glview->setDesignResolutionSize(designResolutionSize.width, designResolutionSize.height, ResolutionPolicy::NO_BORDER);
     Size frameSize = glview->getFrameSize();
-    // if the frame's height is larger than the height of medium size.
+
+    // large screens
     if (frameSize.height > mediumResolutionSize.height)
-    {        
+    {
+        searchPath.push_back("res-large");
         director->setContentScaleFactor(MIN(largeResolutionSize.height/designResolutionSize.height, largeResolutionSize.width/designResolutionSize.width));
     }
-    // if the frame's height is larger than the height of small size.
+    // medium screens
     else if (frameSize.height > smallResolutionSize.height)
-    {        
+    {
+        searchPath.push_back("res-medium");
         director->setContentScaleFactor(MIN(mediumResolutionSize.height/designResolutionSize.height, mediumResolutionSize.width/designResolutionSize.width));
     }
-    // if the frame's height is smaller than the height of medium size.
+    // small screens
     else
     {        
+        searchPath.push_back("res-small");
         director->setContentScaleFactor(MIN(smallResolutionSize.height/designResolutionSize.height, smallResolutionSize.width/designResolutionSize.width));
     }
+    FileUtils::getInstance()->setSearchPaths(searchPath);
 
     register_all_packages();
 
