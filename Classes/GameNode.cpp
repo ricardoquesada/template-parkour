@@ -135,7 +135,7 @@ bool GameNode::init()
 
 void GameNode::initScore()
 {
-    _score = Label::createWithCharMap("font_grinched_21.png", 16, 24, '0');
+    _score = Label::createWithCharMap("font_grinched_21.plist");
     _score->setString(":::::0");
     _score->setAnchorPoint(Vec2(1,1));
     addChild(_score);
