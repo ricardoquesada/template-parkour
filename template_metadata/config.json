@@ -4,7 +4,7 @@
 	"language":"c++",
 	"description_file": "description.html",
 	"options": {
-		"sdkbox":true
+		"sdkbox":false
 	},
 	"files_to_copy": "files.json"
 }
