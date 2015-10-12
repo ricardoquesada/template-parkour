@@ -23,7 +23,8 @@
                "proj.win10/PROJECT_NAME.sln",
                "proj.win10/App/PROJECT_NAME.vcxproj",
                "proj.win10/App/PROJECT_NAME.vcxproj.filters",
-               "proj.win10/App/PROJECT_NAME_TemporaryKey.pfx"
+               "proj.win10/App/PROJECT_NAME_TemporaryKey.pfx",
+	       "PROJECT_NAME.cocos2dproj"
             ]
          },
          "project_replace_project_name":{
